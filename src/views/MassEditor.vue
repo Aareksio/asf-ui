@@ -17,13 +17,21 @@
       </template>
 
       <template v-else>
+        <MassEditorSteps
+          :steps="steps"
+          :currentStep="status"
+          :isDisabled="isStepDisabled"
+          :getTitle="getDisabledTitle"
+          @setStep="setStatus"
+        ></MassEditorSteps>
+
         <MassEditorBots
           v-if="status === 'bots'"
           :bots="bots"
           :selectedBots="selectedBots"
           @toggle="toggleSelectedBots"
           @update="updateSelectedBots"
-          @next="status = 'properties'"
+          @next="setStatus('properties')"
         ></MassEditorBots>
 
         <MassEditorSelect
@@ -35,8 +43,8 @@
           @select="selectProperty"
           @remove="removeProperty"
           @update="updateModel"
-          @next="status = 'values'"
-          @back="status = 'bots'"
+          @next="setStatus('values')"
+          @back="setStatus('bots')"
         ></MassEditorSelect>
 
         <MassEditorValue
@@ -44,8 +52,8 @@
           :selectedProperties="selectedProperties"
           :categories="categories"
           :config="config"
-          @next="status = 'check'"
-          @back="status = 'properties'"
+          @next="setStatus('check')"
+          @back="setStatus('properties')"
         ></MassEditorValue>
 
         <MassEditorCheck
@@ -53,7 +61,7 @@
           :config="config"
           :selectedBots="selectedBots"
           :selectedProperties="selectedProperties"
-          @back="status = 'values'"
+          @back="setStatus('values')"
         ></MassEditorCheck>
       </template>
     </div>
@@ -62,6 +70,7 @@
 
 <script>
   import { mapGetters } from 'vuex';
+  import MassEditorSteps from '../components/MassEditor/Steps.vue';
   import MassEditorBots from '../components/MassEditor/Bots.vue';
   import MassEditorValue from '../components/MassEditor/Value.vue';
   import MassEditorCheck from '../components/MassEditor/Check.vue';
@@ -78,6 +87,7 @@
       };
     },
     components: {
+      MassEditorSteps,
       MassEditorBots,
       MassEditorCheck,
       MassEditorSelect,
@@ -95,6 +105,7 @@
         selectedBots: [],
         selectedProperties: [],
         noBotsFound: false,
+        steps: ['bots', 'properties', 'values', 'check'],
       };
     },
     computed: {
@@ -171,9 +182,36 @@
       updateModel(model) {
         this.selectedProperties = model;
       },
+      setStatus(status) {
+        this.status = status;
+      },
       toggleSelectedBots() {
         if (this.selectedBots.length === this.bots.length) this.selectedBots = [];
         else this.selectedBots = this.bots;
+      },
+      isStepDisabled(step) {
+        switch (step) {
+          case 'properties':
+            return this.selectedBots.length === 0;
+          case 'values':
+            return this.selectedBots.length === 0 || this.selectedProperties.length === 0;
+          case 'check':
+            return this.selectedBots.length === 0 || this.selectedProperties.length === 0;
+          default:
+            return false;
+        }
+      },
+      getDisabledTitle(step) {
+        switch (step) {
+          case 'properties':
+            return (this.selectedBots.length === 0) ? this.$t('mass-editor-bots-disabled') : null;
+          case 'values':
+          case 'check':
+            if (this.selectedBots.length === 0) return this.$t('mass-editor-bots-disabled');
+            return (this.selectedProperties.length === 0) ? this.$t('mass-editor-properties-disabled') : null;
+          default:
+            return null;
+        }
       },
     },
   };
